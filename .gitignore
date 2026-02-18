@@ -1,0 +1,19 @@
+# Data files (too large for git)
+*.bin
+input.txt
+
+# Model checkpoints
+out/
+
+# WandB logs
+wandb/
+
+# Python
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
