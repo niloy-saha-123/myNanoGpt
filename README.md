@@ -17,6 +17,8 @@ step    0: train loss 4.4749, val loss 4.4704
 step 4500: train loss 1.2122, val loss 1.5657
 ```
 
+![Training loss curve](myNanoGpt.png)
+
 ## Setup
 
 Trained on MacBook using Apple Silicon MPS. Requires PyTorch with MPS support.
