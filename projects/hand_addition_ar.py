@@ -10,6 +10,12 @@ from torch.nn import functional as F
 # Sequence layout:
 #   pos:  0   1   2   3   4
 #   tok:  a   +   b   =  sum
+# 
+# All possible inputs and outputs:
+#   0 + 0 = 0
+#   0 + 1 = 1
+#   1 + 0 = 1
+#   1 + 1 = 2
 #
 # The '=' token at pos 3 must attend to pos 0 and pos 2 (the operands),
 # figure out how many are '1', and predict the correct sum token.
