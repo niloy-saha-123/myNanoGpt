@@ -1,149 +1,110 @@
-# Hand-Designed vs. Trained Transformers: Do They Learn the Same Algorithms?
+# Hand-Designed vs. Trained Transformers: Generalization from Small to Large Data
 
-## What This Is
-
-For COMP560, I built a set of tiny GPT models where I set every weight by hand to perform specific tasks (copy, reverse, addition). These hand-designed models work perfectly because they encode the actual algorithm -- no training needed.
-
-This raised a natural question: **if I train the same architecture from scratch using gradient descent, does the trained version generalize to inputs it's never seen?**
+COMP560 Research Report  
+March 2025  
 
 ---
 
-## Setup
+## 1. Overview
 
-### The Architecture
-
-Every model -- hand-designed and trained -- uses the exact same GPT architecture:
-
-```
-Token Embedding -> Position Embedding -> Block(LayerNorm -> Attention -> Residual -> LayerNorm -> FFN -> Residual) -> Final LayerNorm -> Linear Head
-```
-
-All models use **1 layer, 1 attention head, and no dropout**. The only things that change between tasks are `vocab_size`, `n_embd`, and `block_size`.
-
-### The Tasks
-
-| Task | What it does | Vocab | n_embd | Total possible inputs |
-|------|-------------|-------|--------|-----------------------|
-| Copy | `ABC<sep>` -> `ABC` | 4 | 11 | 27 |
-| Reverse | `ABC<sep>` -> `CBA` | 4 | 11 | 27 |
-| Decimal Addition | `a+b=` -> two-digit sum | 12 | 25 | 100 |
-
-### What I Did
-
-Trained each model on only a *subset* of examples, then tested on held-out inputs it had never seen. Both the hand-designed and trained models are tested on the same seen and unseen splits.
-
-| Task | Trained on | Tested on (unseen) |
-|------|-----------|-------------------|
-| Copy | 9 of 27 (33%) | 18 of 27 (67%) |
-| Reverse | 9 of 27 (33%) | 18 of 27 (67%) |
-| Decimal Addition | 50 of 100 (50%) | 50 of 100 (50%) |
-
-Training used AdamW (lr=1e-3), 5,000 steps for copy/reverse and 20,000 for addition. All models hit near-zero training loss.
+This project compares hand-designed and SGD-trained GPT models on simple algorithmic tasks. The architecture is the same in both cases: 1 layer, 1 attention head, no dropout. The difference is how the weights are set. Hand-designed models have weights derived analytically to encode the task; trained models learn from examples via AdamW. The main question is whether training on a subset of inputs leads to generalization to unseen inputs or only memorization.
 
 ---
 
-## Results
+## 2. Phase 1: Baseline Experiments
 
-### 4-Way Comparison
+**Setup.** Three tasks: copy (repeat input), reverse (reverse order), and decimal addition (1-digit sums). For copy and reverse, the input space is 27 (3 letters in 3 positions); 9 examples for training, 18 held out for testing. For addition, 100 possible sums; 50 train, 50 test. Hand-designed models are built by setting attention keys and values so each output position attends to the correct input position, plus identity embeddings and output mapping.
 
-Each task is tested in all 4 combinations: hand-designed on seen, hand-designed on unseen, trained on seen, trained on unseen.
+**Results.** Hand-designed models get 100% on both seen and unseen inputs. Trained models all fit the training set, but generalize differently:
 
-**Copy**
+| Task    | Trained on | Unseen accuracy |
+|---------|------------|-----------------|
+| Copy    | 9          | 16/18 (88.9%)   |
+| Reverse | 9          | 11/18 (61%)     |
+| Addition| 50         | 8–11/50 (16–22%)|
 
-|  | Seen (9) | Unseen (18) |
-|--|----------|-------------|
-| Hand-Designed | 9/9 | 18/18 |
-| Trained (SGD) | 9/9 | 16/18 |
-
-![Copy Results](copy.png)
-
-**Reverse**
-
-|  | Seen (9) | Unseen (18) |
-|--|----------|-------------|
-| Hand-Designed | 9/9 | 18/18 |
-| Trained (SGD) | 9/9 | 11/18 |
-
-![Reverse Results](reverse.png)
-
-**Decimal Addition**
-
-|  | Seen (50) | Unseen (50) |
-|--|-----------|-------------|
-| Hand-Designed | 50/50 | 50/50 |
-| Trained (SGD) | 50/50 | 11/50 |
-
-![Decimal Addition Results](decimal_addition.png)
-
-### Observations
-
-**Copy** -- the trained model nearly generalizes perfectly (16/18). The task is simple enough (look 3 positions back) that SGD discovers a working rule from just 9 examples.
-
-**Reverse** -- the trained model gets only 11/18 unseen inputs correct (61%). It learned partial patterns that happened to work on the training set but didn't capture the full reversal logic. Example failures:
-- `BAC -> CAC` (should be `CAB`)
-- `AAB -> BAB` (should be `BAA`)
-- `ACB -> BCB` (should be `BCA`)
-
-**Addition** -- the trained model gets only 11/50 unseen sums correct (22%). It shows no evidence of having learned the actual addition algorithm. Example failures:
-- `0+0 -> 04` (should be `00`)
-- `1+1 -> 03` (should be `02`)
-- `9+9 -> 17` (should be `18`)
-- `9+0 -> 01` (should be `09`)
-
-The hand-designed model gets **100% on everything** because it encodes the algorithm itself.
+Copy nearly generalizes; two failures. Reverse captures some patterns but fails on many unseen inputs. Addition shows little generalization and appears to be memorizing. The working hypothesis was that task complexity drives generalization: simple routing (copy) works, compositional reasoning (addition) does not.
 
 ---
 
-## What I Learned
+## 3. Phase 2: Extension with More Data
 
-### 1. Generalization depends on task complexity
+The paper "Transformers Can Do Arithmetic with the Right Embeddings" (McLeish et al., NeurIPS 2024) argues that transformers can learn arithmetic under suitable setups. That led to scaling up training data and input spaces to test whether more examples improve generalization.
 
-| Task complexity | Generalization |
-|----------------|---------------|
-| Simple routing (copy) | SGD nearly learns the rule |
-| Position-dependent routing (reverse) | Partial -- works for some inputs |
-| Compositional reasoning (addition) | SGD memorizes, doesn't generalize |
+**Extended tasks.** Copy at 4, 5, and 8 letters; reverse at 5 and 8 letters; addition with 75 examples and 2-digit sums (2000 train); a 3-state Markov chain (predict next token from a fixed transition matrix); and ternary 2-digit addition. Training sizes were increased and, where relevant, made configurable via command line.
 
-The more computation a task requires (not just moving tokens around), the worse the trained model generalizes.
+**Results.** Larger training sets changed generalization:
 
-### 2. Hand-designed models have a fundamental advantage
+| Task   | Config              | Unseen accuracy   |
+|--------|---------------------|-------------------|
+| Copy   | 4-letter (32)       | 100%              |
+| Copy   | 5-letter (500)      | 100%              |
+| Copy   | 8-letter (1000)     | 100%              |
+| Reverse| 5-letter (500)       | 100%              |
+| Reverse| 8-letter (2000)     | 100%              |
+| Addition | 75 train          | 68%               |
+| Addition | 2-digit (2000)     | 88.7%             |
+| Addition | 3-digit (1000)     | 820/2000 (41%)    |
+| Markov | 256 / 5000 seqs     | KL ≈ 0.002        |
+| Ternary 2-digit | 80 train   | 1/1 (single test) |
 
-They encode the *algorithm*, not the *data*. They need zero training examples and generalize perfectly. But this advantage only exists for tasks simple enough that a human can figure out the correct weights -- for complex real-world tasks (like language), training is the only option.
-
-### 3. Memorization is not understanding
-
-Both models get 100% on training data, but only the hand-designed model handles unseen inputs. The trained model memorizes input-output pairs rather than learning the underlying rule.
-
----
-
-## Limitations
-
-- These are intentionally tiny models (1 layer, 1 head). Bigger models might generalize better.
-- Training data is very small (9--50 examples). Real models train on millions.
-- I didn't try regularization (dropout, weight decay), which could improve generalization.
-- Results are for simple deterministic tasks and may not directly apply to natural language.
+Reverse improves from 61% to 100% with enough data. Addition improves from roughly 16% to 68% (75 train) and 88.7% (2-digit, 2000 train). Copy already did well and remains at 100% with 32+ examples. Markov fits the transition distribution well at both 256 and 5000 sequences. The main takeaway is that task complexity alone does not explain generalization; data size matters.
 
 ---
 
-## How to Reproduce
+## 4. Implementation Notes and Fixes
 
-```bash
-cd myNanoGpt/research
-conda activate comp560
+Several bugs required fixes during the project:
 
-python generalize_copy.py
-python generalize_reverse.py
-python generalize_addition.py
-```
+**Markov lm_head.** The hand-designed Markov model initially failed due to a shape mismatch: the transition matrix log-probs are 3×3, but the lm_head expects (vocab_size, n_embd). Fixed by using only the first three embedding dimensions for the output projection.
 
-Each script trains a model on the subset, builds the hand-designed model, and prints the full 4-way comparison table with every individual prediction.
+**8-letter copy and reverse.** The `masked_tgt` loop used `range(SEQ_LEN + 1, block_size)`, which could index past the end of `tgt`. Updated to `range(SEQ_LEN, len(tgt))`.
 
-## Files
+**Hand-designed copy 8-letter.** Output showed the separator first and dropped the last letter. The key matrix was wired for positions 9–16, but the first prediction occurs at position 8. Adjusted the key mapping to `range(SEQ_LEN, SEQ_LEN + SEQ_LEN)` with `(t - SEQ_LEN)` so position 8 attends to position 0. The hand-designed model should now reach 100%.
 
-| File | What it does |
-|------|-------------|
-| `model.py` | Shared GPT architecture (all scripts import from here) |
-| `generalize_copy.py` | 4-way comparison: copy (9 train / 18 test) |
-| `generalize_reverse.py` | 4-way comparison: reverse (9 train / 18 test) |
-| `generalize_addition.py` | 4-way comparison: decimal addition (50 train / 50 test) |
-| `REPORT.md` | This report |
+**Addition hand model on GPU.** Tensors in the lm_head calibration loop were created on CPU while the inputs were on GPU. Added `device=device` so all tensors stay on the same device.
+
+**3-digit addition OOM.** Training 10k examples on MPS ran out of memory. Added automatic CPU fallback when `TRAIN_SIZE > 6000`. The 10k run was not completed.
+
+**Hand-designed reverse 5-letter and 8-letter.** Still reports 0%; the attention key mapping for variable-length reverse is incorrect. Not fixed. Trained model results are valid.
+
+---
+
+## 5. Conclusions
+
+Initial runs suggested that task complexity largely determines whether trained models generalize. The extension runs show that data volume is also critical. With little data, models tend to memorize; with enough data, they learn the underlying rules. Copy generalizes even with few examples. Reverse and addition need more data, but both can reach high unseen accuracy when trained on hundreds or thousands of examples. These results align with the view that transformers can learn algorithmic behavior when given sufficient data and an appropriate setup.
+
+**Limitations.** Single seed per run; hand-designed reverse for 5 and 8 letters is broken; 3-digit 10k run not completed; ternary 2-digit uses only one test example; models are minimal (1 layer, 1 head).
+
+---
+
+## 6. Reproducibility
+
+Environment: `conda activate comp560`, `cd myNanoGpt/research`.
+
+Base: `generalize_copy.py`, `generalize_reverse.py`, `generalize_addition.py`.
+
+Extensions: `generalize_copy_4letter.py 32`, `generalize_copy_5letter.py 500`, `generalize_copy_8letter.py 1000`, `generalize_reverse_5letter.py 500`, `generalize_reverse_8letter.py 2000`, `generalize_addition_moredata.py 75`, `generalize_addition_2digit.py 2000`, `generalize_markov_variable.py 256`, `generalize_markov_variable.py 5000`, `generalize_ternary_addition_2digit.py 80`.
+
+---
+
+## 7. Files
+
+| File | Purpose |
+|------|---------|
+| model.py | Shared GPT architecture |
+| generalize_copy.py | Copy 3-letter |
+| generalize_copy_4letter.py | Copy 4-letter |
+| generalize_copy_5letter.py | Copy 5-letter |
+| generalize_copy_8letter.py | Copy 8-letter |
+| generalize_reverse.py | Reverse 3-letter |
+| generalize_reverse_5letter.py | Reverse 5-letter |
+| generalize_reverse_8letter.py | Reverse 8-letter |
+| generalize_addition.py | 1-digit addition |
+| generalize_addition_moredata.py | 1-digit (variable train size) |
+| generalize_addition_2digit.py | 2-digit addition |
+| generalize_addition_3digit.py | 3-digit addition |
+| generalize_markov_variable.py | Markov (variable train size) |
+| generalize_ternary_addition.py | Ternary 1-digit |
+| generalize_ternary_addition_2digit.py | Ternary 2-digit |
+| compare_training_data.py | Sweep script for train size comparison |

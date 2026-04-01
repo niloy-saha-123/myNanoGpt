@@ -123,7 +123,7 @@ class GPT(nn.Module):
         B, T, C = logits.shape
         logits_flat = logits.view(B * T, C)
         targets_flat = targets.view(B * T)
-        loss = F.cross_entropy(logits_flat, targets_flat)
+        loss = F.cross_entropy(logits_flat, targets_flat, ignore_index=-100)
         return logits, loss
 
     def get_attention_weights(self, idx):

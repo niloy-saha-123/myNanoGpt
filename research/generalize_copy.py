@@ -22,7 +22,7 @@ n_embd     = 11
 n_head     = 1
 n_layer    = 1
 block_size = 7
-device     = 'cpu'
+device     = 'mps' if torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'cpu')
 
 itos = {0: 'A', 1: 'B', 2: 'C', 3: '<sep>'}
 stoi = {'A': 0, 'B': 1, 'C': 2, '<sep>': 3}

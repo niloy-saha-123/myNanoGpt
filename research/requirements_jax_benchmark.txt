@@ -1,0 +1,10 @@
+# Optional: JAX vs PyTorch benchmark (research/jax_lm.py, benchmark_jax_vs_torch.py)
+# Install in your COMP560 env, then e.g.:
+#   pip install -r requirements_jax_benchmark.txt
+#
+# GPU (Linux CUDA): see https://github.com/jax-ml/jax#installation
+#   pip install -U "jax[cuda12]"  # or cuda13 per JAX docs
+
+numpy>=1.23
+optax>=0.2
+jax>=0.4.30
