@@ -70,7 +70,6 @@ Together, the two parts show the main gap of the project:
 - `research/generalize_addition_2digit.py`
 - `research/generalize_addition_3digit.py`
 - `research/generalize_markov_variable.py`
-- `research/compare_training_data.py`
 - `research/REPORT.md`
 
 ## Running the Main Experiments
