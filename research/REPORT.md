@@ -217,7 +217,6 @@ python generalize_addition_3digit.py 1000
 python generalize_markov_variable.py 256
 ```
 
-For the detailed hand-designed discussion, see:
+For the hand-designed project summary, see:
 
 - `projects/README.md`
-- `projects/EXPLANATION.md`

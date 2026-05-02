@@ -87,5 +87,3 @@ python hand_markov_ar.py
 Each one prints token-by-token output so you can see the model generating step by step.
 
 ---
-
-For a deeper dive (theory, architecture, all the keywords explained), see `EXPLANATION.md`.

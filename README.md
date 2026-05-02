@@ -59,7 +59,6 @@ Together, the two parts show the main gap of the project:
 - `projects/hand_decimal_addition_ar.py`
 - `projects/hand_markov_ar.py`
 - `projects/README.md`
-- `projects/EXPLANATION.md`
 
 ### Trained generalization experiments
 
@@ -113,4 +112,3 @@ The final project report is here:
 The detailed hand-designed discussion is here:
 
 - `projects/README.md`
-- `projects/EXPLANATION.md`
