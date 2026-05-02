@@ -94,13 +94,25 @@ This side of the project established an important baseline: if the trained model
 
 ## Baseline Trained Results
 
-The first trained comparison used small datasets:
+The first comparison in the project was not just trained-model evaluation in isolation. It directly compared hand-designed GPTs against trained GPTs on seen and unseen data.
+
+The setup was:
 
 - copy on `3^3 = 27` strings, with `9` train and `18` held out
 - reverse on the same space, also `9` train and `18` held out
 - 1-digit decimal addition, with `50` train and `50` held out
 
-These models fit the seen examples well, but generalization was much weaker:
+The baseline results were:
+
+| Task | Hand Seen | Hand Unseen | Trained Seen | Trained Unseen |
+|---|---:|---:|---:|---:|
+| Copy | `9/9` | `18/18` | `9/9` | `16/18` |
+| Reverse | `9/9` | `18/18` | `9/9` | `11/18` |
+| Addition | `50/50` | `50/50` | `50/50` | `11/50` |
+
+This table made the comparison precise. The hand-designed models generalized perfectly because they encoded the actual algorithm. The trained models also fit the seen examples, but their unseen performance dropped sharply as the task became more structured.
+
+Looking only at the trained side, the held-out numbers were:
 
 | Task | Training set | Held-out result |
 |---|---:|---:|
@@ -119,6 +131,8 @@ That suggested that routing-style tasks are easier for SGD to learn from little 
 ## Why the Study Was Extended
 
 Stopping at those baseline numbers would have made the conclusion too simplistic. The hand-designed models had already shown that reverse and addition were possible. So the more interesting question became whether the trained failures were really about task impossibility or just about data scarcity.
+
+That question became stronger after reading *Transformers Can Do Arithmetic with the Right Embeddings* (McLeish et al., NeurIPS 2024). That paper suggested that arithmetic ability in transformers depends heavily on the setup. In my project, it raised the possibility that the weak addition results were not showing a hard architectural limit, but instead a training regime that was too small.
 
 That led to the extension experiments:
 

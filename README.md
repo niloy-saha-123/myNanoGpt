@@ -30,6 +30,40 @@ Together, the two parts show the main gap of the project:
 
 **a transformer may be able to do a task, but training does not automatically learn that computation from limited data.**
 
+## Baseline Comparison
+
+The first comparison in the project tested hand-designed GPTs against trained GPTs on seen and unseen inputs.
+
+| Task | Hand Seen | Hand Unseen | Trained Seen | Trained Unseen |
+|---|---:|---:|---:|---:|
+| Copy | `9/9` | `18/18` | `9/9` | `16/18` |
+| Reverse | `9/9` | `18/18` | `9/9` | `11/18` |
+| Addition | `50/50` | `50/50` | `50/50` | `11/50` |
+
+This baseline made the comparison clear:
+
+- hand-designed models generalized perfectly because they encoded the actual rule
+- trained models fit the training data but often failed on unseen examples
+- the gap widened as the task required more structured reasoning
+
+## Extension with More Data
+
+After the baseline, I extended the experiments with more training data and larger task variants. This was motivated in part by the paper *Transformers Can Do Arithmetic with the Right Embeddings* (McLeish et al.), which suggested that arithmetic failures may come from setup and data regime rather than pure impossibility.
+
+| Task | Extended setting | Result |
+|---|---|---:|
+| Copy | 4-letter, 32 train | `100%` |
+| Copy | 5-letter, 500 train | `100%` |
+| Copy | 8-letter, 1000 train | `100%` |
+| Reverse | 5-letter, 500 train | `100%` |
+| Reverse | 8-letter, 2000 train | `100%` |
+| Addition | 75 train | `68%` |
+| Addition | 2-digit, 2000 train | `88.7%` |
+| Addition | 3-digit, 1000 train | `41.0%` |
+| Markov | 256 or 5000 sequences | `KL ≈ 0.002` |
+
+These extension results refined the original conclusion. The trained GPTs were not simply incapable of reverse or addition. Instead, they often needed much more data before they started learning the underlying rule.
+
 ## Main Findings
 
 - hand-designed GPTs solved copy, reverse, arithmetic, and Markov-style next-token behavior
